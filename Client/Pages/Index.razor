@@ -1,0 +1,52 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims;
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Index</PageTitle>
+
+<h1>@_authMessage : @_userId</h1>
+
+@if (_claims.Count() > 0)
+{
+    <dl>
+        @foreach(var claim in _claims)
+        {
+                <dt>@claim.Type</dt>
+                <dd>@claim.Value</dd>
+        }
+    </dl>
+}
+
+
+
+@code{
+    private string _authMessage;
+    private string _userId;
+    private IEnumerable<Claim> _claims = Enumerable.Empty<Claim>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await GetClaimsPrincipalData();
+        await base.OnParametersSetAsync();
+    }
+
+    private async Task GetClaimsPrincipalData()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity.IsAuthenticated)
+        {
+            _authMessage = $"{user.Identity.Name} is authenticated.";
+            _claims = user.Claims;
+            _userId = $"User Id: {user.FindFirst(c => c.Type == "sub")?.Value}";
+        }
+        else
+        {
+            _authMessage = "The user is NOT authenticated.";
+        }
+    }
+}
+
