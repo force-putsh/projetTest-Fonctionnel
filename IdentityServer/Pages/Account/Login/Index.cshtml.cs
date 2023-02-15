@@ -4,6 +4,7 @@ using Duende.IdentityServer.Models;
 using Duende.IdentityServer.Services;
 using Duende.IdentityServer.Stores;
 using Duende.IdentityServer.Test;
+using EFProject.Entity;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,7 +16,7 @@ namespace IdentityServer.Pages.Login;
 [AllowAnonymous]
 public class Index : PageModel
 {
-    private readonly TestUserStore _users;
+    private readonly List<Users> _users;
     private readonly IIdentityServerInteractionService _interaction;
     private readonly IEventService _events;
     private readonly IAuthenticationSchemeProvider _schemeProvider;
@@ -30,11 +31,10 @@ public class Index : PageModel
         IIdentityServerInteractionService interaction,
         IAuthenticationSchemeProvider schemeProvider,
         IIdentityProviderStore identityProviderStore,
-        IEventService events,
-        TestUserStore users = null)
+        IEventService events)
     {
         // this is where you would plug in your own custom identity management library (e.g. ASP.NET Identity)
-        _users = users ?? throw new Exception("Please call 'AddTestUsers(TestUsers.Users)' on the IIdentityServerBuilder in Startup or remove the TestUserStore from the AccountController.");
+        _users = TestUsers.Users ?? throw new Exception("Please call 'AddTestUsers(TestUsers.Users)' on the IIdentityServerBuilder in Startup or remove the TestUserStore from the AccountController.");
             
         _interaction = interaction;
         _schemeProvider = schemeProvider;
@@ -90,10 +90,10 @@ public class Index : PageModel
         if (ModelState.IsValid)
         {
             // validate username/password against in-memory store
-            if (_users.ValidateCredentials(Input.Username, Input.Password))
+            if (ValidateCredentials(Input.Username, Input.Password))
             {
-                var user = _users.FindByUsername(Input.Username);
-                await _events.RaiseAsync(new UserLoginSuccessEvent(user.Username, user.SubjectId, user.Username, clientId: context?.Client.ClientId));
+                var user = _users.FirstOrDefault(x=>x.Username==Input.Username);
+                await _events.RaiseAsync(new UserLoginSuccessEvent(user.Username, user.SubjectId.ToString(), user.Username, clientId: context?.Client.ClientId));
 
                 // only set explicit expiration here if user chooses "remember me". 
                 // otherwise we rely upon expiration configured in cookie middleware.
@@ -108,7 +108,7 @@ public class Index : PageModel
                 };
 
                 // issue authentication cookie with subject ID and username
-                var isuser = new IdentityServerUser(user.SubjectId)
+                var isuser = new IdentityServerUser(user.SubjectId.ToString())
                 {
                     DisplayName = user.Username
                 };
@@ -218,5 +218,14 @@ public class Index : PageModel
             EnableLocalLogin = allowLocal && LoginOptions.AllowLocalLogin,
             ExternalProviders = providers.ToArray()
         };
+    }
+
+    private bool ValidateCredentials(string username, string password)
+    { 
+        var  user = _users.FirstOrDefault(x => x.Username == username && x.Password == password);
+        if (user != null)
+            return true;
+        else
+            return false;
     }
 }

@@ -18,21 +18,6 @@ public class TestUsers
 
     public static List<Users> Users => _userRepository.GetUser().Result;
 
-    public static IEnumerable<TestUsers> GetUser()
-    {
-        List<TestUsers> TestUser = new List<TestUsers>();
-
-       /* foreach (var data in Users)
-        {
-            TestUser.Add(new TestUsers()
-            {
-                SubjectId=data.SubjectId,
-                Username=data.Username,
-                Password=data.Password
-            });
-        }*/
-       return TestUser;
-    }
 
     /* public static List<TestUser> Users
      {
